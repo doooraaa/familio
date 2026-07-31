@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-app: #0B0E14;
+  --text-primary: #F2F4F8;
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --accent: #D4A843;
+  --accent-hover: #E0BA5A;
+  --shadow-glass: 0 8px 32px rgba(0,0,0,0.5);
+}
+body.light {
+  --bg-app: #F5F6FA;
+  --text-primary: #1A1C23;
+  --glass-bg: rgba(255, 255, 255, 0.70);
+  --glass-border: rgba(0,0,0,0.06);
+  --accent: #B8860B;
+  --accent-hover: #D4A843;
+  --shadow-glass: 0 8px 32px rgba(0,0,0,0.1);
+}
+body {
+  background: var(--bg-app);
+  color: var(--text-primary);
+}

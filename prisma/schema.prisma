@@ -1,0 +1,295 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  name          String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions      Session[]
+  accounts      Account[]
+  familyMembers FamilyMember[]
+  createdTransactions Transaction[] @relation("CreatedBy")
+  createdInvitations Invitation[]  @relation("Inviter")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  refreshToken      String?
+  accessToken       String?
+  expiresAt         Int?
+  tokenType         String?
+  scope             String?
+  idToken           String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model VerificationToken {
+  id         String   @id @default(cuid())
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Family {
+  id         String   @id @default(cuid())
+  name       String
+  inviteCode String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  members    FamilyMember[]
+  accounts   Account[]
+  categories Category[]
+  transactions Transaction[]
+  loans      Loan[]
+  creditCards CreditCard[]
+  installments Installment[]
+  invitations Invitation[]
+}
+
+model FamilyMember {
+  familyId String
+  userId   String
+  role     FamilyRole @default(PARTNER)
+  joinedAt DateTime   @default(now())
+
+  family   Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([familyId, userId])
+}
+
+enum FamilyRole {
+  OWNER
+  PARTNER
+}
+
+model Invitation {
+  id        String           @id @default(cuid())
+  email     String
+  code      String           @unique
+  status    InvitationStatus @default(PENDING)
+  expiresAt DateTime
+  createdAt DateTime         @default(now())
+
+  familyId  String
+  createdBy String
+
+  family    Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  inviter   User   @relation("Inviter", fields: [createdBy], references: [id], onDelete: SetNull)
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+model Account {
+  id              String      @id @default(cuid())
+  familyId        String
+  name            String
+  type            AccountType
+  currency        String      @default("RUB")
+  initialBalance  Decimal     @default(0)
+  currentBalance  Decimal     @default(0)
+  isArchived      Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  family          Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+  creditCard      CreditCard?
+
+  @@index([familyId])
+}
+
+enum AccountType {
+  CASH
+  CHECKING
+  SAVINGS
+  CREDIT_CARD
+}
+
+model Category {
+  id            String        @id @default(cuid())
+  familyId      String
+  name          String
+  type          OperationType
+  icon          String?
+  color         String?
+  parentId      String?
+  monthlyLimit  Decimal?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  family        Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  parent        Category?     @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children      Category[]    @relation("CategoryHierarchy")
+  transactions  Transaction[]
+
+  @@index([familyId])
+  @@index([parentId])
+}
+
+enum OperationType {
+  INCOME
+  EXPENSE
+}
+
+model Transaction {
+  id                String            @id @default(cuid())
+  familyId          String
+  accountId         String
+  categoryId        String
+  type              OperationType
+  amount            Decimal
+  currency          String            @default("RUB")
+  plannedDate       DateTime
+  executedDate      DateTime?
+  status            TransactionStatus @default(PLANNED)
+  isRecurring       Boolean           @default(false)
+  recurrenceRule    Json?
+  recurrenceEndDate DateTime?
+  description       String?
+  tags              String[]
+  loanId            String?
+  creditCardId      String?
+  installmentId     String?
+  createdBy         String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  family            Family            @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  account           Account           @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  category          Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  creator           User              @relation("CreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  loan              Loan?             @relation(fields: [loanId], references: [id], onDelete: SetNull)
+  creditCard        CreditCard?       @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
+  installment       Installment?      @relation(fields: [installmentId], references: [id], onDelete: SetNull)
+
+  @@index([familyId, status, plannedDate])
+  @@index([familyId, accountId])
+  @@index([familyId, categoryId])
+  @@index([loanId])
+  @@index([creditCardId])
+  @@index([installmentId])
+  @@index([createdBy])
+}
+
+enum TransactionStatus {
+  PLANNED
+  EXECUTED
+  CANCELLED
+}
+
+model Loan {
+  id               String        @id @default(cuid())
+  familyId         String
+  name             String
+  totalAmount      Decimal
+  remainingAmount  Decimal
+  interestRate     Decimal
+  monthlyPayment   Decimal
+  paymentDay       Int
+  startDate        DateTime
+  endDate          DateTime?
+  status           LoanStatus    @default(ACTIVE)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  family           Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  transactions     Transaction[]
+
+  @@index([familyId])
+}
+
+enum LoanStatus {
+  ACTIVE
+  CLOSED
+}
+
+model CreditCard {
+  id               String            @id @default(cuid())
+  familyId         String
+  accountId        String            @unique
+  creditLimit      Decimal
+  currentDebt      Decimal           @default(0)
+  minPaymentPercent Decimal          @default(5)
+  commission       Decimal?
+  gracePeriodDays  Int               @default(55)
+  closingDay       Int
+  status           CreditCardStatus  @default(ACTIVE)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  family           Family            @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  account          Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  transactions     Transaction[]
+
+  @@index([familyId])
+  @@index([accountId])
+}
+
+enum CreditCardStatus {
+  ACTIVE
+  CLOSED
+}
+
+model Installment {
+  id               String              @id @default(cuid())
+  familyId         String
+  name             String
+  totalAmount      Decimal
+  remainingAmount  Decimal
+  monthlyPayment   Decimal
+  paymentDay       Int
+  startDate        DateTime
+  endDate          DateTime?
+  status           InstallmentStatus   @default(ACTIVE)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  family           Family              @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  transactions     Transaction[]
+
+  @@index([familyId])
+}
+
+enum InstallmentStatus {
+  ACTIVE
+  CLOSED
+}
