@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#d8d8dd">
+  <title>С днём рождения, мама</title>
+  <meta name="description" content="Небольшой подарок ко дню рождения.">
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 1. Приветствие -->
+  <header class="section hero">
+    <div class="container hero__inner">
+      <h1>С днём рождения, мама!</h1>
+      <p class="lead">Листай вниз, там сюрприз!</p>
+      <a class="scroll-hint" href="#wish" aria-label="Перейти к поздравлению">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10l8 8 8-8"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- 2. Поздравление -->
+  <section class="section wish" id="wish">
+    <div class="container">
+      <p class="wish__text reveal">
+        Спасибо, что ты рядом — и в самые обычные дни, и в самые важные.
+        <span><br><br>Желаем тебе крепкого здоровья, финансового благополучия, чтобы решилась проблема с коленом по щелчку пальцев, чтобы учеба Алины радовала, крепких нервов, да и всего самого наилучшего!</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- Голосовое поздравление (необязательно).
+       Запишите голосовое, сохраните как audio/greeting.m4a (папку audio создайте рядом с photos),
+       затем уберите эти скобки комментария:
+  <section class="section voice">
+    <div class="container reveal">
+      <h2>Послушай</h2>
+      <audio controls preload="none" src="audio/greeting.m4a">Ваш браузер не поддерживает аудио.</audio>
+    </div>
+  </section>
+  -->
+
+  <!-- 3. Фотографии -->
+  <main class="section photos">
+    <div class="container">
+      <h2 class="reveal">Немного воспоминаний для памяти</h2>
+      <p class="photos__hint reveal">Нажми на фото, чтобы увеличить</p>
+      <div class="gallery">
+
+        <figure class="card reveal">
+          <button class="card__frame" type="button" aria-label="Открыть первое фото на весь экран"><img src="photos/photo-1.jpg" alt="Мы с мамой — первое фото" width="1400" height="1050" loading="lazy"></button>
+        </figure>
+
+        <figure class="card card--portrait reveal">
+          <button class="card__frame" type="button" aria-label="Открыть второе фото на весь экран"><img src="photos/photo-2.jpg" alt="Мы с мамой — второе фото" width="1050" height="1400" loading="lazy"></button>
+        </figure>
+
+        <figure class="card reveal">
+          <button class="card__frame" type="button" aria-label="Открыть третье фото на весь экран"><img src="photos/photo-3.jpg" alt="Мы с мамой — третье фото" width="1024" height="764" loading="lazy"></button>
+        </figure>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- 4. Финал -->
+  <footer class="section finale">
+    <div class="container finale__inner reveal">
+      <p>С любовью,</p>
+      <p>Даниил</p>
+    </div>
+  </footer>
+
+  <!-- Кнопки размера текста -->
+  <div class="textsize" role="group" aria-label="Размер текста">
+    <button type="button" id="smaller" aria-label="Уменьшить текст">А−</button>
+    <button type="button" id="bigger" aria-label="Увеличить текст">А+</button>
+  </div>
+
+  <!-- Фото на весь экран -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Фото на весь экран">
+    <img src="" alt="">
+    <button class="lightbox__close" type="button" aria-label="Закрыть">
+      <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l16 16M22 6L6 22"/></svg>
+    </button>
+  </div>
+
+  <script>
+    // 1) Плавное появление блоков при прокрутке. Без JS всё просто видно сразу.
+    (function () {
+      var items = document.querySelectorAll('.reveal');
+      if (!('IntersectionObserver' in window) ||
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      document.documentElement.classList.add('js');
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.15 });
+      items.forEach(function (el) { io.observe(el); });
+    })();
+
+    // 2) Размер текста: 0 — крупный (по умолчанию), 1 — ещё крупнее, 2 — максимальный. Запоминается.
+    (function () {
+      var root = document.documentElement, size = 0;
+      var minus = document.getElementById('smaller'), plus = document.getElementById('bigger');
+      try { size = Math.min(2, Math.max(0, parseInt(localStorage.getItem('textSize'), 10) || 0)); } catch (e) {}
+      function apply() {
+        root.setAttribute('data-size', size);
+        minus.disabled = size === 0; plus.disabled = size === 2;
+        try { localStorage.setItem('textSize', size); } catch (e) {}
+      }
+      minus.addEventListener('click', function () { if (size > 0) { size--; apply(); } });
+      plus.addEventListener('click', function () { if (size < 2) { size++; apply(); } });
+      apply();
+    })();
+
+    // 3) Фото на весь экран по нажатию.
+    (function () {
+      var box = document.getElementById('lightbox'), big = box.querySelector('img'),
+          close = box.querySelector('.lightbox__close'), opener = null;
+      function open(btn) {
+        var src = btn.querySelector('img');
+        big.src = src.getAttribute('src'); big.alt = src.alt; opener = btn;
+        box.classList.add('is-open'); close.focus();
+      }
+      function shut() { box.classList.remove('is-open'); if (opener) opener.focus(); }
+      document.querySelectorAll('.card__frame').forEach(function (b) {
+        b.addEventListener('click', function () { open(b); });
+      });
+      close.addEventListener('click', shut);
+      box.addEventListener('click', function (e) { if (e.target === box) shut(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') shut(); });
+    })();
+  </script>
+</body>
+</html>
